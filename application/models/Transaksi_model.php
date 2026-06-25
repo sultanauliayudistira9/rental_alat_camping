@@ -41,4 +41,21 @@ class Transaksi_model extends CI_Model
         $this->db->where('transaksi_id', $transaksi_id);
         return $this->db->get()->result();
     }
+
+    // ambil SEMUA transaksi + nama penyewa (buat admin)
+    public function get_all()
+    {
+        $this->db->select('transaksi.*, users.nama AS nama_penyewa');
+        $this->db->from('transaksi');
+        $this->db->join('users', 'users.id = transaksi.user_id', 'left');
+        $this->db->order_by('transaksi.id', 'DESC');
+        return $this->db->get()->result();
+    }
+
+    // ubah status transaksi
+    public function update_status($id, $status)
+    {
+        $this->db->where('id', $id);
+        return $this->db->update('transaksi', ['status' => $status]);
+    }
 }
