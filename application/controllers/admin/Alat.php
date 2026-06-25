@@ -28,6 +28,25 @@ class Alat extends CI_Controller
 
     public function simpan()
     {
+        $nama_file = null;
+
+        if (!empty($_FILES['gambar']['name'])) {
+            $config['upload_path']   = './uploads/';
+            $config['allowed_types'] = 'jpg|jpeg|png|gif';
+            $config['max_size']      = 2048;
+            $config['file_name']     = 'alat_' . time();
+
+            $this->load->library('upload', $config);
+
+            if ($this->upload->do_upload('gambar')) {
+                $nama_file = $this->upload->data('file_name');
+            } else {
+                $this->session->set_flashdata('error', $this->upload->display_errors());
+                redirect('admin/alat/tambah');
+                return;
+            }
+        }
+
         $data = [
             'kategori_id' => $this->input->post('kategori_id'),
             'nama_alat'   => $this->input->post('nama_alat'),
@@ -35,6 +54,7 @@ class Alat extends CI_Controller
             'harga_sewa'  => $this->input->post('harga_sewa'),
             'stok'        => $this->input->post('stok'),
             'kondisi'     => $this->input->post('kondisi'),
+            'gambar'      => $nama_file,
         ];
         $this->Alat_model->insert($data);
         redirect('admin/alat');
@@ -50,6 +70,31 @@ class Alat extends CI_Controller
 
     public function update($id)
     {
+        // ambil data lama dulu (buat tahu foto sebelumnya)
+        $alat_lama = $this->Alat_model->get_by_id($id);
+        $nama_file = $alat_lama->gambar; // default: pakai foto lama
+
+        if (!empty($_FILES['gambar']['name'])) {
+            $config['upload_path']   = './uploads/';
+            $config['allowed_types'] = 'jpg|jpeg|png|gif';
+            $config['max_size']      = 2048;
+            $config['file_name']     = 'alat_' . time();
+
+            $this->load->library('upload', $config);
+
+            if ($this->upload->do_upload('gambar')) {
+                $nama_file = $this->upload->data('file_name');
+                // hapus foto lama kalau ada
+                if ($alat_lama->gambar && file_exists('./uploads/' . $alat_lama->gambar)) {
+                    unlink('./uploads/' . $alat_lama->gambar);
+                }
+            } else {
+                $this->session->set_flashdata('error', $this->upload->display_errors());
+                redirect('admin/alat/edit/' . $id);
+                return;
+            }
+        }
+
         $data = [
             'kategori_id' => $this->input->post('kategori_id'),
             'nama_alat'   => $this->input->post('nama_alat'),
@@ -57,6 +102,7 @@ class Alat extends CI_Controller
             'harga_sewa'  => $this->input->post('harga_sewa'),
             'stok'        => $this->input->post('stok'),
             'kondisi'     => $this->input->post('kondisi'),
+            'gambar'      => $nama_file,
         ];
         $this->Alat_model->update($id, $data);
         redirect('admin/alat');
@@ -64,6 +110,11 @@ class Alat extends CI_Controller
 
     public function hapus($id)
     {
+        // hapus file foto juga kalau ada
+        $alat = $this->Alat_model->get_by_id($id);
+        if ($alat && $alat->gambar && file_exists('./uploads/' . $alat->gambar)) {
+            unlink('./uploads/' . $alat->gambar);
+        }
         $this->Alat_model->delete($id);
         redirect('admin/alat');
     }
